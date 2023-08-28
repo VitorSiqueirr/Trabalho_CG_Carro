@@ -17,10 +17,10 @@ GLfloat rotX, rotY, rotX_ini, rotY_ini;
 
 GLfloat obsX, obsY, obsZ, obsX_ini, obsY_ini, obsZ_ini;
 
-GLfloat truckMove = 20.f;
-GLfloat cXMove = 10.f;
-GLfloat cZMove = 0.f;
-GLfloat cYMove = 2.f;
+GLfloat movimentoCaminhao = 20.f;
+GLfloat pXMove = 10.f;
+GLfloat pZMove = 0.f;
+GLfloat pYMove = 2.f;
 GLfloat jumpHeight = 0.0f, jumpVelocity = 0.0f, cYPos = 0.0f;
 
 bool isJumping = false;
@@ -34,13 +34,13 @@ GLfloat matGrassShininess = 10.0; // Brilho
 
 void JumpAnimation(int value) {
 	if (jumpHeight > 0.0) {
-		cYMove = cYPos + jumpHeight;
+		pYMove = cYPos + jumpHeight;
 		jumpVelocity -= 0.005; // Ajuste a velocidade do pulo aqui
 		jumpHeight += jumpVelocity;
 
 		glutTimerFunc(10, JumpAnimation, 0);
 	} else {
-		cYMove = cYPos;
+		pYMove = cYPos;
 }
 
 glutPostRedisplay();
@@ -57,7 +57,7 @@ void DefineIluminacao() {
 	GLfloat luzAmbiente[4] = {0.2, 0.2, 0.2, 1.0};
 	GLfloat luzDifusa[4] = {0.7, 0.7, 0.7, 1.0}; // "cor"
 	GLfloat luzEspecular[4] = {1.0, 1.0, 1.0, 1.0}; // "brilho"
-	GLfloat posicaoLuz[4] = {20, 100, 110, 1.0};
+	GLfloat posicaoLuz[4] = {-40, 50, -100, 1.0};
 
 	GLfloat especularidade[4] = {1.0, 1.0, 1.0, 1.0};
 	GLint especMaterial = 60;
@@ -138,14 +138,10 @@ void display() {
 
 	glPushMatrix(); // Inicio Grama
 		glTranslatef(0, -10, 0);
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, matGrassDiffuse);
-		glMaterialfv(GL_FRONT, GL_SPECULAR, matGrassSpecular);
-		glMaterialf(GL_FRONT, GL_SHININESS, matGrassShininess);
-        // Renderizar a grama ao redor do asfalto (um quadrado verde)
         glColor3f(0.0f, 1.0f, 0.0f);
 
         glBegin(GL_QUADS);
-			glVertex3f(-200.0f, 0.0f, -200.0f);
+			glVertex3f(-2000.0f, 0.0f, -200.0f);
 			glVertex3f(200.0f, 0.0f, -200.0f);
 			glVertex3f(200.0f, 0.0f, 200.0f);
 			glVertex3f(-200.0f, 0.0f, 200.0f);
@@ -153,16 +149,16 @@ void display() {
 	glPopMatrix(); // Fim Grama
 
 	glPushMatrix(); // Sol
-		glTranslatef(0, 100, 100);
+		glTranslatef(-40, 50, -100);
 		glColor3d(1, 1, 0.2);
-		glutSolidSphere(25, 100, 100);
+		glutSolidSphere(10, 100, 100);
 	glPopMatrix(); // Fim Sol
 
 	glPushMatrix(); // Caminhon
 		polarView();
 
 		glColor3d(1, 0, 0); // Traseira Caminhao
-		glTranslatef(truckMove, 0, 0);
+		glTranslatef(movimentoCaminhao, 0, 0);
 		glutSolidCube(15);
 
 		glColor3d(1, 0, 0);
@@ -207,7 +203,7 @@ void display() {
 		glutSolidCylinder(1, 10.5, 100, 100);
 
 		glPushMatrix();
-			glTranslatef(0, -6, 10.1);
+			glTranslatef(0, -6, 10.2);
 			glRotatef(90, -1, 0, 0);
 			glColor3d(0.5, 0.5, 0.5);
 			glutSolidCylinder(6, 12, 2, 2);
@@ -217,7 +213,7 @@ void display() {
 	glPushMatrix(); // Pessoa
 		
 		// Cabeca
-		glTranslatef(cXMove, cYMove, cZMove);
+		glTranslatef(pXMove, pYMove, pZMove);
 		glColor3d(0, 0, 1);
 		glutSolidSphere(2, 100, 100);
 
@@ -276,10 +272,10 @@ void keySpecial(int key, int x, int y) {
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		truckMove -= 5.f;
+		movimentoCaminhao -= 5.f;
 		break;
 	case GLUT_KEY_RIGHT:
-		truckMove += 5.f;
+		movimentoCaminhao += 5.f;
 		break;
 	default:
 		break;
@@ -297,20 +293,20 @@ void myKeyboard(unsigned char c, int x, int y) {
 		exit(0);
 		break;
 	case 'd':
-		cXMove += 5.f;
+		pXMove += 5.f;
 		break;
 	case 'a':
-		cXMove -= 5.f;
+		pXMove -= 5.f;
 		break;
 	case 'w':
-		cZMove += 5.f;
+		pZMove += 5.f;
 		break;
 	case 's':
-		cZMove -= 5.f;
+		pZMove -= 5.f;
 		break;
 	case 'f':
 		if (jumpHeight == 0.0) {
-			cYPos = cYMove;
+			cYPos = pYMove;
 			jumpHeight = 1.0; // Ajuste a altura máxima do pulo aqui
 			jumpVelocity = 0.1; // Ajuste a velocidade inicial do pulo aqui
 			JumpAnimation(0);
@@ -335,7 +331,7 @@ void myMouse(int b, int s, int x, int y) {
 	}
 }
 
-// função detecta truckMoveimento do mouse e salva coordenadas
+// função detecta movimentoCaminhaoimento do mouse e salva coordenadas
 void myMotion(int x, int y) {
 	printf("Motion: (%d, %d)\n", x, y);
 }
