@@ -2,6 +2,8 @@
 #include <GL/freeglut.h>
 #include <cmath>
 #include <iostream>
+#include<SDL2/SDL.h>
+#include<SDL2/SDL_image.h>
 
 #define SENS_ROT 5.0
 #define SENS_OBS 10.0
@@ -26,11 +28,7 @@ GLfloat jumpHeight = 0.0f, jumpVelocity = 0.0f, cYPos = 0.0f;
 bool isJumping = false;
 int x_ini, y_ini, mouse_button;
 
-// Defina as propriedades dos materiais para a grama
-GLfloat matGrassDiffuse[] = { 0.0, 1.0, 0.0, 1.0 }; // Cor difusa
-GLfloat matGrassSpecular[] = { 0.1, 0.1, 0.1, 1.0 }; // Cor especular
-GLfloat matGrassShininess = 10.0; // Brilho
-
+GLuint id, idSol;
 
 void JumpAnimation(int value) {
 	if (jumpHeight > 0.0) {
@@ -56,8 +54,9 @@ void polarView() {
 void DefineIluminacao() {
 	GLfloat luzAmbiente[4] = {0.2, 0.2, 0.2, 1.0};
 	GLfloat luzDifusa[4] = {0.7, 0.7, 0.7, 1.0}; // "cor"
-	GLfloat luzEspecular[4] = {1.0, 1.0, 1.0, 1.0}; // "brilho"
-	GLfloat posicaoLuz[4] = {-40, 50, -100, 1.0};
+	GLfloat luzEspecular[4] = {1, 0, 0, 1.0}; // "brilho"
+	GLfloat posicaoLuz[4] = {10, 2, 0, 0};
+	GLint   spot_luz1         = 30;
 
 	GLfloat especularidade[4] = {1.0, 1.0, 1.0, 1.0};
 	GLint especMaterial = 60;
@@ -69,6 +68,7 @@ void DefineIluminacao() {
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, luzDifusa);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
 	glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
+	glLightf (GL_LIGHT1, GL_SPOT_CUTOFF, spot_luz1);
 }
 
 void PosicionaObservador() {
@@ -83,7 +83,7 @@ void PosicionaObservador() {
 void EspecificaParametrosVisualizacao() {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(angle, fAspect, 0.5, 500);
+	gluPerspective(angle, fAspect, 1, 700);
 	PosicionaObservador();
 }
 
@@ -102,7 +102,7 @@ void GerenciaMouse(int button, int state, int x, int y) {
 	else mouse_button = -1;
 }
 
-void GerenciaMovimentoCaminhao(int x, int y) {
+void GerenciaMovimentoCarro(int x, int y) {
 	if (mouse_button == GLUT_LEFT_BUTTON) {
 		int deltax = x_ini - x;
 		int deltay = y_ini - y;
@@ -136,64 +136,104 @@ void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	DefineIluminacao();
 
-	glPushMatrix(); // Inicio Grama
-		glTranslatef(0, -10, 0);
-        glColor3f(0.0f, 1.0f, 0.0f);
-
+	glPushMatrix(); // Ground with Texture
+	glColor3f(0.0f, 1.0f, 0.0f);
+    glTranslatef(0, -10, 0);
+	glEnable(GL_TEXTURE_2D);
+    // Enable texture mapping for the ground
+    glBindTexture(GL_TEXTURE_2D, id);
         glBegin(GL_QUADS);
-			glVertex3f(-2000.0f, 0.0f, -200.0f);
-			glVertex3f(200.0f, 0.0f, -200.0f);
-			glVertex3f(200.0f, 0.0f, 200.0f);
-			glVertex3f(-200.0f, 0.0f, 200.0f);
-        glEnd();
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-200.0f, 0.0f, -200.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(200.0f, 0.0f, -200.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(200.0f, 0.0f, 200.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-200.0f, 0.0f, 200.0f);
+		glEnd();
+	glDisable(GL_TEXTURE_2D);
 	glPopMatrix(); // Fim Grama
 
 	glPushMatrix(); // Sol
-		glTranslatef(-40, 50, -100);
 		glColor3d(1, 1, 0.2);
+		glTranslatef(-40, 50, -100);
 		glutSolidSphere(10, 100, 100);
 	glPopMatrix(); // Fim Sol
 
-	glPushMatrix(); // Caminhon
-		polarView();
+	//carro
+	glPushMatrix();
+    polarView();
 
-		glColor3d(1, 0, 0); // Traseira Caminhao
-		glTranslatef(movimentoCaminhao, 0, 0);
-		glutSolidCube(15);
+	/// Corpo do carro
+    glColor3d(0.0, 0.0, 1.0); 
+    glTranslatef(movimentoCaminhao, 0, 0);
 
-		glColor3d(1, 0, 0);
-		glTranslatef(15, 0, 0);
-		glutSolidCube(15); // Fim Traseira Caminhao
+    // Caroceria
+    glPushMatrix();
+    glScalef(4.0, 0.6, 1.5);
+    glutSolidCube(15);
+    glPopMatrix();
 
-		glColor3d(1, 1, 1); // Frente Caminhao
-		glTranslatef(13.2, -2, 0);
-		glutSolidCube(10); // Fim da Frente Caminhao
+    // Teto
+    glPushMatrix();
+    glColor3d(0.7, 0.7, 1.0); 
+    glTranslatef(-5, 12, 0);
+    glScalef(5, 0.2, 3); 
+    glutSolidCube(7.5);
+    glPopMatrix();
 
-		glTranslatef(0, -5, 5); // Roda direita da frente
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda direita da frente
+    // Janelas
+    glColor3d(0.7, 0.7, 1.0);
 
-		glTranslatef(0, 0, -10); // Roda esquerda da frente
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda esquerda da frente
+    // Janela da frente
+    glPushMatrix();
+    glTranslatef(14, 7, 0);
+    glRotatef(90, 0, 45, 0);
+    glScalef(1.2,0.7, 0.02);
+    glutSolidCube(15);
+    glPopMatrix();
 
-		glTranslatef(-28, 0, 12); // Roda1 da direita traseira
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda1 da direita traseira
+    // Janela da direita
+    glPushMatrix();
+    glTranslatef(-8, 7.5, 10);
+    glRotatef(0, 0, 1, 0);
+    glScalef(3, 0.5, 0.02);
+    glutSolidCube(15);
+    glPopMatrix();
 
-		glTranslatef(-4, 0, 0); // Roda2 da direita traseira
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda2 da direita traseira
+	// Janela da esquerda
+    glPushMatrix();
+    glTranslatef(-8, 7.5, -10);
+    glRotatef(0, 0, 1, 0);
+    glScalef(3, 0.5, 0.02);
+    glutSolidCube(15);
+    glPopMatrix();
 
+    // Rodas
+    glColor3d(0, 0, 0);
 
-		glTranslatef(4, 0, -14); // Roda1 traseira esquerda
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda1 traseira esquerda
+    // Roda direita traseira
+    glPushMatrix();
+    glTranslatef(-17, -6, 7.5);
+    glutSolidTorus(2, 4, 100, 100);
+    glPopMatrix();
 
-		glTranslatef(-4, 0, 0); // Roda2 traseira esquerda
-		glColor3d(0, 0, 0);
-		glutSolidTorus(1, 1, 100, 100); // Fim da Roda2 traseira esquerda
-	glPopMatrix(); // Fim do caminhon
+    // Roda esquerda traseira
+    glPushMatrix();
+    glTranslatef(-17, -6, -7.5);
+    glutSolidTorus(2, 4, 100, 100);
+    glPopMatrix();
+
+    // Roda direita diantera
+    glPushMatrix();
+    glTranslatef(17, -6, 7.5);
+    glutSolidTorus(2, 4, 100, 100);
+    glPopMatrix();
+
+    // Roda esquerda diantera
+    glPushMatrix();
+    glTranslatef(17, -6, -7.5);
+    glutSolidTorus(2, 4, 100, 100);
+    glPopMatrix();
+
+    glPopMatrix(); // End Car
 
 	glPushMatrix(); // Lixo
 		glTranslatef(40, -10, 20);
@@ -258,7 +298,6 @@ void display() {
 		glPopMatrix();
 
 	glPopMatrix(); // Fim da character
-
 	glutSwapBuffers();
 }
 
@@ -344,9 +383,34 @@ void init() {
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
-	glShadeModel(GL_FLAT);
+	// glShadeModel(GL_FLAT);
 
-	angle = 45;
+    SDL_Surface* image = IMG_Load("Grama.jpg");
+
+	// Enable texture mapping
+    glEnable(GL_TEXTURE_2D);
+    // Generate a texture ID
+    glGenTextures(1, &id);
+    // Load and bind the grass texture
+    glBindTexture(GL_TEXTURE_2D, id);
+
+
+    glGenTextures(1, &id);
+
+	glBindTexture(GL_TEXTURE_2D, id);
+	//Filtro
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	//Descobrimos o formato a partir da imagem
+	GLint format = image->format->BytesPerPixel == 3 ? GL_RGB : GL_RGBA;
+
+	//Carregamos a imagem do disco
+	glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0, format, GL_UNSIGNED_BYTE, image->pixels);
+
+	SDL_FreeSurface(image);
+
+
+	angle = 90;
 	rotX = 0;
 	rotY = 10;
 	obsX = 20;
@@ -365,7 +429,7 @@ int main(int argc, char **argv) {
 	glutKeyboardFunc(myKeyboard);
 	glutSpecialFunc(keySpecial);
 	glutMouseFunc(GerenciaMouse);
-	glutMotionFunc(GerenciaMovimentoCaminhao);
+	glutMotionFunc(GerenciaMovimentoCarro);
 	init();
 	glutMainLoop();
 
